@@ -132,6 +132,11 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for _, addr := range mas {
 		// 发起建立连接
 		go func(ma multiaddr.Multiaddr) {
+			defer func(startT time.Time) {
+				t := time.Now().Sub(startT)
+				fmt.Println("dail use", t.Seconds())
+			}(time.Now())
+
 			if conn, err := mnet.Dial(ma); err == nil {
 				connChan <- conn
 			} else {
@@ -143,7 +148,10 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for {
 		select {
 		case conn := <-connChan:
-			conn.SetDeadline(time.Now().Add(time.Second * 60))
+			err := conn.SetDeadline(time.Now().Add(time.Second * 60))
+			if err != nil {
+				return nil, err
+			}
 			clt := rpc.NewClient(conn)
 			ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
 				hst.cfg.ID,
