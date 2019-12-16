@@ -13,8 +13,8 @@ import (
 	"github.com/mr-tron/base58"
 	"github.com/multiformats/go-multiaddr"
 	mnet "github.com/multiformats/go-multiaddr-net"
-
 	"net/rpc"
+	"time"
 )
 
 //type Host interface {
@@ -143,6 +143,7 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for {
 		select {
 		case conn := <-connChan:
+			conn.SetDeadline(time.Now().Add(time.Second * 60))
 			clt := rpc.NewClient(conn)
 			ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
 				hst.cfg.ID,
