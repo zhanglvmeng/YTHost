@@ -7,6 +7,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"net"
+	"time"
 
 	"net/rpc"
 )
@@ -17,6 +19,7 @@ type YTHostClient struct {
 	localPeerAddrs  []string
 	localPeerPubKey []byte
 	isClosed        bool
+	conn            net.Conn
 }
 
 func (yc *YTHostClient) RemotePeer() peer.AddrInfo {
@@ -55,7 +58,7 @@ func (yc *YTHostClient) LocalPeer() peer.AddrInfo {
 	return pi
 }
 
-func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostClient, error) {
+func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey, conn net.Conn) (*YTHostClient, error) {
 	var yc = new(YTHostClient)
 	yc.Client = clt
 	yc.localPeerID = pi.ID
@@ -69,6 +72,9 @@ func WarpClient(clt *rpc.Client, pi *peer.AddrInfo, pk crypto.PubKey) (*YTHostCl
 }
 
 func (yc *YTHostClient) SendMsg(ctx context.Context, id int32, data []byte) ([]byte, error) {
+	if err := yc.conn.SetDeadline(time.Now().Add(time.Second * 60)); err != nil {
+		return nil, err
+	}
 
 	resChan := make(chan service.Response)
 	errChan := make(chan error)
