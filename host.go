@@ -132,10 +132,10 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for _, addr := range mas {
 		// 发起建立连接
 		go func(ma multiaddr.Multiaddr) {
-			defer func(startT time.Time) {
-				t := time.Now().Sub(startT)
-				fmt.Println("dail use", t.Seconds())
-			}(time.Now())
+			//defer func(startT time.Time) {
+			//	t := time.Now().Sub(startT)
+			//	fmt.Println("dail use", t.Seconds())
+			//}(time.Now())
 
 			if conn, err := mnet.Dial(ma); err == nil {
 				connChan <- conn
