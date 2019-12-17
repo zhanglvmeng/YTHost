@@ -11,6 +11,10 @@ import (
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multiaddr"
 	"math/rand"
+	"net"
+
+	//"net"
+	"sync"
 	"testing"
 	"time"
 )
@@ -288,6 +292,62 @@ func TestCS(t *testing.T) {
 	} else {
 		t.Log(err)
 	}
+}
+
+func TestStressConn(t *testing.T) {
+	h1 := GetRandomHost()
+	h2 := GetRandomHost()
+
+	var max = 2000
+
+	go h1.Accept()
+
+	wg := sync.WaitGroup{}
+	wg.Add(max)
+
+	for i := 0; i < max; i++ {
+		go func(i int) {
+			_, err := h2.Connect(context.Background(), h1.Config().ID, h1.Addrs())
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(i)
+			defer wg.Done()
+		}(i)
+	}
+	tm := time.Now()
+	wg.Wait()
+	t.Log("用时", time.Now().Sub(tm).Seconds())
+}
+
+func TestStressConn3(t *testing.T) {
+	const max = 200
+	var number = 0
+	l, _ := net.Listen("tcp4", "127.0.0.1:9003")
+	wg := sync.WaitGroup{}
+	wg.Add(max)
+
+	go func() {
+		for {
+			number++
+			fmt.Println("accept", time.Now().String())
+			l.Accept()
+			fmt.Println("end", time.Now().String(), number)
+		}
+	}()
+
+	for i := 0; i < max; i++ {
+		go func() {
+			t.Log("start conn")
+			net.Dial("tcp4", "127.0.0.1:9003")
+			t.Log("end conn")
+			defer wg.Done()
+		}()
+	}
+
+	tm := time.Now()
+	wg.Wait()
+	t.Log("用时", time.Now().Sub(tm).Seconds())
 }
 
 ////测试多连接
