@@ -17,7 +17,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"net/rpc"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -164,12 +164,26 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 
 func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, error) {
 	connChan := make(chan mnet.Conn)
-	maChan := make(chan multiaddr.Multiaddr, len(mas))
+	errChan := make(chan error)
+	wg := sync.WaitGroup{}
+	wg.Add(len(mas))
 
-	var doneCount int32 = 0
+	go func() {
+		wg.Wait()
+		errChan <- fmt.Errorf("dail all maddr fail")
+	}()
 
-	for _, ma := range mas {
-		maChan <- ma
+	for _, addr := range mas {
+		go func(addr multiaddr.Multiaddr) {
+			defer wg.Done()
+			if conn, err := mnet.Dial(addr); err == nil {
+				connChan <- conn
+			} else {
+				if hst.cfg.Debug {
+					log.Println("conn error:", err)
+				}
+			}
+		}(addr)
 	}
 
 	for {
@@ -178,27 +192,11 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 			return nil, fmt.Errorf("ctx quit")
 		case conn := <-connChan:
 			return conn, nil
-		default:
-			if len(maChan) > 0 {
-				ma := <-maChan
-				go func() {
-					if conn, err := mnet.Dial(ma); err == nil {
-						connChan <- conn
-					} else {
-						if hst.cfg.Debug {
-							log.Println("conn error:", err)
-						}
-					}
-					defer atomic.AddInt32(&doneCount, 1)
-				}()
-			}
-			if doneCount >= int32(len(mas)) {
-				return nil, fmt.Errorf("dail all maddr fail")
-			}
+
+		case err := <-errChan:
+			return nil, err
 		}
 	}
-
-	return nil, fmt.Errorf("all maddr dail fail")
 }
 
 // ConnectAddrStrings 连接字符串地址

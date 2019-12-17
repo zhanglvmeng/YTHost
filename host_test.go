@@ -298,7 +298,7 @@ func TestStressConn(t *testing.T) {
 	h1 := GetRandomHost()
 	h2 := GetRandomHost()
 
-	var max = 200
+	var max = 640
 
 	go h1.Accept()
 
