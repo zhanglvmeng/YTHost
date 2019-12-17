@@ -298,7 +298,7 @@ func TestStressConn(t *testing.T) {
 	h1 := GetRandomHost()
 	h2 := GetRandomHost()
 
-	var max = 2000
+	var max = 200
 
 	go h1.Accept()
 
@@ -321,7 +321,7 @@ func TestStressConn(t *testing.T) {
 }
 
 func TestStressConn3(t *testing.T) {
-	const max = 200
+	const max = 2000
 	var number = 0
 	l, _ := net.Listen("tcp4", "127.0.0.1:9003")
 	wg := sync.WaitGroup{}

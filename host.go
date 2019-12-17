@@ -17,6 +17,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"net/rpc"
+	"sync/atomic"
 	"time"
 )
 
@@ -162,16 +163,41 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 }
 
 func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (mnet.Conn, error) {
-	for _, addr := range mas {
-		// 发起建立连接
-		if conn, err := mnet.Dial(addr); err == nil {
+	connChan := make(chan mnet.Conn)
+	maChan := make(chan multiaddr.Multiaddr, len(mas))
+
+	var doneCount int32 = 0
+
+	for _, ma := range mas {
+		maChan <- ma
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("ctx quit")
+		case conn := <-connChan:
 			return conn, nil
-		} else {
-			if hst.cfg.Debug {
-				log.Println("conn error:", err)
+		default:
+			if len(maChan) > 0 {
+				ma := <-maChan
+				go func() {
+					if conn, err := mnet.Dial(ma); err == nil {
+						connChan <- conn
+					} else {
+						if hst.cfg.Debug {
+							log.Println("conn error:", err)
+						}
+					}
+					defer atomic.AddInt32(&doneCount, 1)
+				}()
+			}
+			if doneCount >= int32(len(mas)) {
+				return nil, fmt.Errorf("dail all maddr fail")
 			}
 		}
 	}
+
 	return nil, fmt.Errorf("all maddr dail fail")
 }
 
