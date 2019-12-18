@@ -119,6 +119,7 @@ func (hst *host) Addrs() []multiaddr.Multiaddr {
 	}
 
 	tcpMa, err := multiaddr.NewMultiaddr(fmt.Sprintf("/tcp/%s", port))
+
 	if err != nil {
 		return nil
 	}
@@ -155,7 +156,7 @@ func (hst *host) Connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	ytclt, err := client.WarpClient(clt, &peer.AddrInfo{
 		hst.cfg.ID,
 		hst.Addrs(),
-	}, hst.cfg.Privkey.GetPublic(), conn)
+	}, hst.cfg.Privkey.GetPublic())
 	if err != nil {
 		return nil, err
 	}
