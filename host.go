@@ -176,7 +176,8 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 	for _, addr := range mas {
 		go func(addr multiaddr.Multiaddr) {
 			defer wg.Done()
-			if conn, err := (&mnet.Dialer{}).DialContext(ctx, addr); err == nil {
+			d := &mnet.Dialer{}
+			if conn, err := d.DialContext(ctx, addr); err == nil {
 				connChan <- conn
 			} else {
 				if hst.cfg.Debug {
