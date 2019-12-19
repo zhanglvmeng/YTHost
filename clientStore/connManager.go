@@ -12,6 +12,7 @@ import (
 
 type ClientStore struct {
 	connect func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
+	q       chan struct{}
 	sync.Map
 }
 
@@ -26,6 +27,11 @@ func (cs *ClientStore) Get(ctx context.Context, pid peer.ID, mas []multiaddr.Mul
 }
 
 func (cs *ClientStore) get(ctx context.Context, pid peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error) {
+	cs.q <- struct {
+	}{}
+	defer func() {
+		<-cs.q
+	}()
 
 	// 尝试次数
 	var tryCount int
@@ -107,6 +113,7 @@ func (cs *ClientStore) GetClient(pid peer.ID) (*client.YTHostClient, bool) {
 func NewClientStore(connFunc func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)) *ClientStore {
 	return &ClientStore{
 		connFunc,
+		make(chan struct{}, 10),
 		sync.Map{},
 	}
 }

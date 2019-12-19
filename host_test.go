@@ -298,7 +298,7 @@ func TestStressConn(t *testing.T) {
 	h1 := GetRandomHost()
 	h2 := GetRandomHost()
 
-	var max = 640
+	var max = 6400
 
 	go h1.Accept()
 
@@ -307,7 +307,10 @@ func TestStressConn(t *testing.T) {
 
 	for i := 0; i < max; i++ {
 		go func(i int) {
-			_, err := h2.Connect(context.Background(), h1.Config().ID, h1.Addrs())
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			_, err := h2.ClientStore().Get(ctx, h1.Config().ID, h1.Addrs())
+			//defer clt.Close()
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -321,7 +324,7 @@ func TestStressConn(t *testing.T) {
 }
 
 func TestStressConn3(t *testing.T) {
-	const max = 2000
+	const max = 4000
 	var number = 0
 	l, _ := net.Listen("tcp4", "127.0.0.1:9003")
 	wg := sync.WaitGroup{}
