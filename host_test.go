@@ -298,7 +298,12 @@ func TestStressConn(t *testing.T) {
 	h1 := GetRandomHost()
 	h2 := GetRandomHost()
 
-	var max = 6400
+	h1.RegisterHandler(0x11, func(requestData []byte, head service.Head) ([]byte, error) {
+		fmt.Println(string(requestData))
+		return nil, nil
+	})
+
+	var max = 1000
 
 	go h1.Accept()
 
@@ -310,11 +315,11 @@ func TestStressConn(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			_, err := h2.ClientStore().Get(ctx, h1.Config().ID, h1.Addrs())
-			//defer clt.Close()
+			//defer h2.ClientStore().Close(h1.Config().ID)
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println(i)
+			h2.SendMsg(ctx, h1.Config().ID, 0x11, []byte(fmt.Sprintf("消息 %d", i)))
 			defer wg.Done()
 		}(i)
 	}

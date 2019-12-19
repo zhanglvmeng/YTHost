@@ -14,6 +14,7 @@ type ClientStore struct {
 	connect func(ctx context.Context, id peer.ID, mas []multiaddr.Multiaddr) (*client.YTHostClient, error)
 	q       chan struct{}
 	sync.Map
+	sync.Mutex
 }
 
 // Get 获取一个客户端，如果没有，建立新的客户端连接
@@ -86,6 +87,9 @@ func (cs *ClientStore) GetByAddrString(ctx context.Context, id string, addrs []s
 
 // Close 关闭一个客户端
 func (cs *ClientStore) Close(pid peer.ID) error {
+	cs.Lock()
+	defer cs.Unlock()
+
 	_clt, ok := cs.Load(pid)
 	if !ok {
 		return fmt.Errorf("no find client ID is %s", pid.Pretty())
@@ -115,5 +119,6 @@ func NewClientStore(connFunc func(ctx context.Context, id peer.ID, mas []multiad
 		connFunc,
 		make(chan struct{}, 10),
 		sync.Map{},
+		sync.Mutex{},
 	}
 }
