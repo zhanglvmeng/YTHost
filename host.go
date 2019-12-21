@@ -18,6 +18,7 @@ import (
 	_ "net/http/pprof"
 	"net/rpc"
 	"sync"
+	"time"
 )
 
 //type Host interface {
@@ -166,7 +167,11 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 
 	go func() {
 		wg.Wait()
-		errChan <- fmt.Errorf("dail all maddr fail")
+		select {
+		case errChan <- fmt.Errorf("dail all maddr fail"):
+		case <-time.After(time.Millisecond * 500):
+			return
+		}
 	}()
 
 	for _, addr := range mas {
@@ -174,7 +179,10 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 			defer wg.Done()
 			d := &mnet.Dialer{}
 			if conn, err := d.DialContext(ctx, addr); err == nil {
-				connChan <- conn
+				select {
+				case connChan <- conn:
+				case <-time.After(time.Second * 5):
+				}
 			} else {
 				if hst.cfg.Debug {
 					log.Println("conn error:", err)

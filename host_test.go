@@ -303,7 +303,7 @@ func TestStressConn(t *testing.T) {
 		return nil, nil
 	})
 
-	var max = 1000
+	var max = 100000
 
 	go h1.Accept()
 
@@ -356,6 +356,15 @@ func TestStressConn3(t *testing.T) {
 	tm := time.Now()
 	wg.Wait()
 	t.Log("用时", time.Now().Sub(tm).Seconds())
+}
+
+func TestDnsMa(t *testing.T) {
+	ma, err := multiaddr.NewMultiaddr("/dns4/www.baidu.com/tcp/9999")
+	if err != nil {
+		t.Fatal(err)
+	} else {
+		t.Log(ma)
+	}
 }
 
 ////测试多连接
