@@ -197,7 +197,6 @@ func (hst *host) connect(ctx context.Context, pid peer.ID, mas []multiaddr.Multi
 			return nil, fmt.Errorf("ctx quit")
 		case conn := <-connChan:
 			return conn, nil
-
 		case err := <-errChan:
 			return nil, err
 		}
